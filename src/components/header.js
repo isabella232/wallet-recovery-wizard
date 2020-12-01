@@ -6,7 +6,10 @@ import badgeLogo from 'images/badge_logo.png';
 class Header extends Component {
   state = { username: '' };
 
-  async componentWillMount() {
+  // FIXME does this work?
+  constructor() {
+    super();
+
     if (this.props.isLoggedIn) {
       const { bitgo } = this.props;
       const { username } = bitgo.sessionInfo.user;
