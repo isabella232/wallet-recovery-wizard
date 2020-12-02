@@ -3,10 +3,10 @@
   "author": "BitGo, Inc.",
   "description": "A UI-based desktop app for BitGo Recoveries",
   "version": "2.7.5",
-  "main": "resources/electron.js",
+  "main": "build/electron.js",
   "private": true,
   "scripts": {
-    "start": "NODE_ENV=development BROWSER=none concurrently 'react-scripts start' 'node scripts/electron-wait-react'",
+    "start": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=4096 BROWSER=none concurrently 'react-scripts start' 'node scripts/electron-wait-react'",
     "electron": "electron .",
     "build": "NODE_ENV=production NODE_OPTIONS=--max-old-space-size=4096 GENERATE_SOURCEMAP=false react-scripts build",
     "pack": "build && ./node_modules/.bin/electron-builder --dir",
