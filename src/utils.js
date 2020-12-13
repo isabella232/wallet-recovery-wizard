@@ -1,33 +1,10 @@
 import * as Errors from 'bitgo/dist/src/errors';
-
-import * as utxolib from '@bitgo/utxo-lib';
-
-import { AbstractUtxoCoin } from 'bitgo/dist/src/v2/coins';
-
-export function isDev() {
-  return process.env.NODE_ENV === 'development';
-}
-
-function sanitizeKeys(keys) {
-  return keys.map((k) => {
-    if (!(k instanceof utxolib.HDNode)) {
-      throw new Error(`unexpected key`);
-    }
-
-    return k.neutered().toBase58();
-  });
-}
-
-export async function getRecoveryDebugInfo(baseCoin, recoveryParams) {
-  if (!(baseCoin instanceof AbstractUtxoCoin)) {
-    // TODO support more coins
-    throw new Error('unsupported coin');
-  }
-
-  return {
-    // TODO include derive pubkeys
-    publicKeys: sanitizeKeys(await baseCoin.initiateRecovery(recoveryParams)),
-  };
+/**
+ * A logger we use to log debugging information to the console
+ * @param {String} e
+ */
+export function logToConsole(e) {
+  console.dir(e);
 }
 
 /**
@@ -45,12 +22,18 @@ export async function getRecoveryDebugInfo(baseCoin, recoveryParams) {
  */
 export async function recoverWithKeyPath(baseCoin, recoveryParams) {
   const userKeyPaths = ['/0/0', '/0'];
+  let recoveryPrebuild;
 
   for (const path of userKeyPaths) {
+    recoveryParams['userKeyPath'] = path;
+
     try {
+      recoveryPrebuild = await baseCoin.recover(recoveryParams);
       // if we already have a recovery result, then it means the current path we try
       // is the valid user path, and we can return and exit the iteration loop
-      return await baseCoin.recover(Object.assign({}, recoveryParams, path));
+      if (recoveryPrebuild) {
+        return recoveryPrebuild;
+      }
     } catch (e) {
       // if this current path we try yields us no inputs to recover, we catch the
       // error and move on to the next iteration and continue trying the remaining paths
@@ -62,5 +45,8 @@ export async function recoverWithKeyPath(baseCoin, recoveryParams) {
   // if we couldn't build a tx here, it must have been the case that there were no inputs available
   // to recover. All the other errors would have been caught and thrown already by the line:
   // if (e.constructor.name !== Errors.ErrorNoInputToRecover.name) { throw new Error(e.message);}
-  throw new Errors.ErrorNoInputToRecover();
+  if (!recoveryPrebuild) {
+    throw new Errors.ErrorNoInputToRecover();
+  }
+  return recoveryPrebuild;
 }
